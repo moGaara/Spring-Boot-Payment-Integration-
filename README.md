@@ -188,10 +188,9 @@ public class StripeStrategy implements PaymentStrategy {
 ```
 
 **2. Register it in the factory:**
-
+Make sure to put a name for the strategy
 ```java
-// In StrategyFactory
-case "stripe" -> new StripeStrategy(...);
+@Component("stripe")
 ```
 
 **3. Call it via the unified endpoint:**
