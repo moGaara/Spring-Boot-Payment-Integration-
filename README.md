@@ -1,3 +1,4 @@
+
 # 💳 Payment Integration System — PayPal + Strategy Pattern
 
 > A clean, extensible Spring Boot payment backend using the **Strategy Pattern** and direct PayPal REST API integration (no SDK).
@@ -188,9 +189,10 @@ public class StripeStrategy implements PaymentStrategy {
 ```
 
 **2. Register it in the factory:**
-Make sure to put a name for the strategy
+
 ```java
-@Component("stripe")
+// In StrategyFactory
+case "stripe" -> new StripeStrategy(...);
 ```
 
 **3. Call it via the unified endpoint:**
@@ -209,6 +211,34 @@ No changes needed in the controller or service layer. ✅
 - Avoid SDK dependency — direct API integration only
 - Make payment providers **easily pluggable**
 - Provide a testable backend using Postman
+
+---
+
+## 🐳 Docker
+
+### Building the Image
+
+```bash
+docker build -t payment-integration .
+```
+
+### Running with Docker
+
+```bash
+docker run -p 8080:8080 payment-integration
+```
+
+Then navigate to `http://localhost:8080` in your browser.
+
+### Running with Docker Compose
+
+Make sure you have a `docker-compose.yml` in your project root, then run:
+
+```bash
+docker-compose up
+```
+
+> 💡 Docker Compose is recommended for local development as it handles environment variables, port mapping, and service dependencies in one place.
 
 ---
 
@@ -238,3 +268,4 @@ This project shows how to:
 ---
 
 > ⭐ If you found this project useful, consider giving it a star!
+````
