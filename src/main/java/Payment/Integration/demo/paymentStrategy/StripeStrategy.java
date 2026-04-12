@@ -4,15 +4,15 @@ import Payment.Integration.demo.dto.PaymentCaptureResponse;
 import Payment.Integration.demo.dto.PaymentCreateResponse;
 import Payment.Integration.demo.dto.PaymentRequest;
 import com.stripe.Stripe;
-import com.stripe.model.PaymentIntent;
-import com.stripe.param.PaymentIntentConfirmParams;
-import com.stripe.param.PaymentIntentCreateParams;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 import com.stripe.exception.StripeException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
+
 import java.math.BigDecimal;
 
 @Slf4j
@@ -27,62 +27,72 @@ public class StripeStrategy implements PaymentStrategy {
         Stripe.apiKey = stripeSecretKey;
     }
 
+    @Value("${stripe.success.url:http://localhost:8080/api/payments/stripe/success}")
+    private String successUrl;
+
+    @Value("${stripe.cancel.url:http://localhost:8080/api/payments/stripe/cancel}")
+    private String cancelUrl;
+
     @Override
     public PaymentCreateResponse createPayment(PaymentRequest request) {
         try {
             long amountInCents = convertToCents(request.getAmount());
-            
-            PaymentIntentCreateParams.AutomaticPaymentMethods automaticPaymentMethods =
-                    PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
-                            .setEnabled(true)
-                            .setAllowRedirects(PaymentIntentCreateParams.AutomaticPaymentMethods.AllowRedirects.NEVER)
-                            .build();
 
-            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                    .setAmount(amountInCents)
-                    .setCurrency(request.getCurrency().toLowerCase())
-                    .setDescription(request.getDescription())
-                    .setCaptureMethod(PaymentIntentCreateParams.CaptureMethod.MANUAL)
-                    .setAutomaticPaymentMethods(automaticPaymentMethods)
+            SessionCreateParams params = SessionCreateParams.builder()
+                    .setMode(SessionCreateParams.Mode.PAYMENT)
+                    .setSuccessUrl(successUrl + "?session_id={CHECKOUT_SESSION_ID}")
+                    .setCancelUrl(cancelUrl)
+                    .addLineItem(
+                            SessionCreateParams.LineItem.builder()
+                                    .setQuantity(1L)
+                                    .setPriceData(
+                                            SessionCreateParams.LineItem.PriceData.builder()
+                                                    .setCurrency(request.getCurrency().toLowerCase())
+                                                    .setUnitAmount(amountInCents)
+                                                    .setProductData(
+                                                            SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                                                    .setName(request.getDescription())
+                                                                    .build()
+                                                    )
+                                                    .build()
+                                    )
+                                    .build()
+                    )
                     .build();
 
-            PaymentIntent paymentIntent = PaymentIntent.create(params);
-            
-            log.info("Created Stripe PaymentIntent: {}", paymentIntent.getId());
+            Session session = Session.create(params);
+
+            log.info("Created Stripe Checkout Session: {}", session.getId());
 
             return PaymentCreateResponse.builder()
-                    .paymentId(paymentIntent.getId())
-                    .approvalUrl(paymentIntent.getClientSecret())
+                    .paymentId(session.getId())
+                    .approvalUrl(session.getUrl())
                     .build();
 
         } catch (StripeException e) {
-            log.error("Stripe payment creation failed: {}", e.getMessage());
-            throw new RuntimeException("Failed to create Stripe payment: " + e.getMessage(), e);
+            log.error("Stripe checkout creation failed: {}", e.getMessage());
+            throw new RuntimeException("Failed to create Stripe checkout: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public PaymentCaptureResponse capturePayment(String paymentIntentId) {
+    public PaymentCaptureResponse capturePayment(String sessionId) {
         try {
-            PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
-            
-            PaymentIntentConfirmParams confirmParams = PaymentIntentConfirmParams.builder()
-                    .setPaymentMethod("pm_card_visa")
-                    .build();
-            
-            PaymentIntent confirmedIntent = paymentIntent.confirm(confirmParams);
-            
-            log.info("Confirmed Stripe PaymentIntent: {} with status: {}", 
-                    confirmedIntent.getId(), confirmedIntent.getStatus());
+            Session session = Session.retrieve(sessionId);
 
-            return PaymentCaptureResponse.builder()
-                    .paymentId(confirmedIntent.getId())
-                    .status(confirmedIntent.getStatus())
-                    .build();
+            if ("complete".equals(session.getStatus())) {
+                log.info("Stripe Checkout Session completed: {}", session.getId());
+                return PaymentCaptureResponse.builder()
+                        .paymentId(session.getPaymentIntent())
+                        .status("succeeded")
+                        .build();
+            } else {
+                throw new RuntimeException("Checkout session not completed. Status: " + session.getStatus());
+            }
 
         } catch (StripeException e) {
-            log.error("Stripe payment capture failed for payment {}: {}", paymentIntentId, e.getMessage());
-            throw new RuntimeException("Failed to capture Stripe payment: " + e.getMessage(), e);
+            log.error("Stripe session retrieval failed for {}: {}", sessionId, e.getMessage());
+            throw new RuntimeException("Failed to retrieve Stripe session: " + e.getMessage(), e);
         }
     }
 
