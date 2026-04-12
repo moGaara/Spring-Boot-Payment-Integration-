@@ -1,7 +1,7 @@
 
-# 💳 Payment Integration System — PayPal + Strategy Pattern
+# 💳 Payment Integration System — PayPal + Stripe + Strategy Pattern
 
-> A clean, extensible Spring Boot payment backend using the **Strategy Pattern** and direct PayPal REST API integration (no SDK).
+> A clean, extensible Spring Boot payment backend using the **Strategy Pattern** with PayPal and Stripe REST API integrations.
 
 ---
 
@@ -10,7 +10,8 @@
 This project demonstrates how to:
 
 - Integrate with **PayPal** using direct REST APIs (no SDK)
-- Apply the **Strategy Pattern** to support multiple payment providers (e.g., PayPal, Stripe)
+- Integrate with **Stripe** using official Java SDK
+- Apply the **Strategy Pattern** to support multiple payment providers (PayPal, Stripe)
 - Build a clean, extensible architecture for future payment gateways
 
 ---
@@ -48,7 +49,9 @@ public interface PaymentStrategy {
 | Spring Boot | Application framework |
 | Spring WebClient (WebFlux) | Reactive HTTP client |
 | PayPal REST API (Sandbox) | Payment provider |
+| Stripe Java SDK | Payment provider |
 | Lombok | Boilerplate reduction |
+| Records | Immutable DTOs |
 
 ---
 
@@ -60,10 +63,18 @@ public interface PaymentStrategy {
 POST /api/payments/{provider}/create
 ```
 
-**Example:**
+**Supported providers:** `paypal`, `stripe`
+
+**Example - PayPal:**
 
 ```http
 POST /api/payments/paypal/create
+```
+
+**Example - Stripe:**
+
+```http
+POST /api/payments/stripe/create
 ```
 
 **Request Body:**
@@ -75,7 +86,7 @@ POST /api/payments/paypal/create
 }
 ```
 
-**Response:**
+**PayPal Response:**
 
 ```json
 {
@@ -84,28 +95,34 @@ POST /api/payments/paypal/create
 }
 ```
 
+**Stripe Response:**
+
+```json
+{
+  "paymentId": "pi_3TKzoKRsP4kJBEgL0xLhHv6p",
+  "approvalUrl": "pi_3TKzoKRsP4kJBEgL0xLhHv6p_secret_Q1V4UZylWwwmwQl6tgZCGxYX6"
+}
+```
+
 ---
 
 ### 🔹 2. Capture Payment
 
-**Option A — Postman / Browser redirect:**
-
-```http
-GET /api/payments/paypal/capture?token=ORDER_ID
-```
-
-**Option B — Manual:**
-
+**PayPal:**
 ```http
 POST /api/payments/paypal/capture/{orderId}
 ```
 
-**Response:**
+**Stripe:**
+```http
+POST /api/payments/stripe/capture/{paymentIntentId}
+```
 
+**Response:**
 ```json
 {
-  "paymentId": "ORDER_ID",
-  "status": "COMPLETED"
+  "paymentId": "PAYMENT_ID",
+  "status": "COMPLETED" // or "succeeded" for Stripe
 }
 ```
 
@@ -244,7 +261,7 @@ docker-compose up
 
 ## 🧩 Future Improvements
 
-- [ ] Add full **Stripe** integration
+- [x] Add full **Stripe** integration
 - [ ] Add **Webhooks** for production reliability
 - [ ] Add **Database** for payment tracking & idempotency
 - [ ] Add **Frontend** (React / Angular)
@@ -256,14 +273,17 @@ docker-compose up
 This project shows how to:
 
 - Build a **flexible payment system** with minimal coupling
-- Integrate PayPal using **modern REST APIs**
+- Integrate multiple payment providers using **different approaches**
 - Use **design patterns** in real-world backend scenarios
+- Implement **modern Java features** (records, Spring Boot 4.x)
 
 ---
 
 ## 👨‍💻 Author
 
 **Mohamed Sayed**
+<br>
+**Kareem Khater**
 
 ---
 

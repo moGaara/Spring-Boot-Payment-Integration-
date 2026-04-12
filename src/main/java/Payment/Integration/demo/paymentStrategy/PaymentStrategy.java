@@ -6,6 +6,5 @@ import Payment.Integration.demo.dto.PaymentRequest;
 
 public interface PaymentStrategy {
     PaymentCreateResponse createPayment(PaymentRequest request);
-
     PaymentCaptureResponse capturePayment(String paymentId);
 }
