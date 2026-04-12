@@ -6,6 +6,6 @@ import Payment.Integration.demo.dto.PaymentRequest;
 import reactor.core.publisher.Mono;
 
 public interface PaymentStrategy {
-    Mono<PaymentCreateResponse> createPayment(PaymentRequest request);
-    Mono<PaymentCaptureResponse> capturePayment(String paymentId);
+    PaymentCreateResponse createPayment(PaymentRequest request);
+    PaymentCaptureResponse capturePayment(String paymentId);
 }
