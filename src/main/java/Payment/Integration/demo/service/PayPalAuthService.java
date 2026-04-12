@@ -3,6 +3,7 @@ package Payment.Integration.demo.service;
 
 import Payment.Integration.demo.dto.TokenResponse;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -23,6 +24,7 @@ public class PayPalAuthService {
     @Value("${paypal.client-secret}")
     private String clientSecret;
 
+    @Getter
     @Value("${paypal.base-url}")
     private String baseUrl;
 
@@ -43,4 +45,5 @@ public class PayPalAuthService {
                 .map(TokenResponse::getAccess_token)
                 .block();
     }
+
 }
